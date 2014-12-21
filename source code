@@ -1,0 +1,77 @@
+#read dataset
+setwd('C:/Copy/课程/数据挖掘/大作业')
+data = read.csv('dataset1.txt',stringsAsFactors=F,header=F,sep='\t')
+str(data)
+#plot the ideal cluster
+plot(x=data$V1,y=data$V2,col=factor(data$V3),xlab='x',ylab='y',main='ideal cluster',type='p')
+
+
+idx1 = 1:nrow(data)
+#calculate distance between samples
+mat = matrix(0,nrow(data),nrow(data))
+dist = function(x,y)
+{
+  tmp = sqrt((data[x,1]-data[y,1])*(data[x,1]-data[y,1])+(data[x,2]-data[y,2])*(data[x,2]-data[y,2]))
+  return(tmp)
+}
+for(i in 1:(nrow(data)-1))
+{
+  for(j in (i+1):nrow(data))
+  {
+    mat[j,i] = dist(i,j)   #mat[i,j]#
+    mat[i,j] = mat[j,i]
+  }
+}
+
+#calculate number of points closer than dc to point i
+dc = 5
+ro=c()
+for(i in 1:nrow(data))
+{
+  tmp = mat[i,] - dc
+  tmp1 = length(which(tmp<=0))-1
+  ro = c(ro,tmp1)
+}
+
+#calculate minimumdistance between point i and any other point with higher density
+delta = c()
+for(i in 1:nrow(data))
+{
+  id = which(ro > ro[i])
+  if(length(id)>0)
+  {
+    delta = c(delta,min(mat[i,id]))
+  }
+  else
+  {
+    delta = c(delta,max(mat[i,]))
+  }
+}
+
+color = matrix(0,nrow(data),1)
+#extract center points
+id1 = which(ro==168)[1]
+id2 = which(delta>7.775)
+id2 = id2[which(delta[id2]<20)]
+id3 = which(delta>2.3)
+id3 = id3[which(delta[id3]<5)]
+color[c(id1,id2,id3)] = 1:length(c(id1,id2,id3))#7.775
+
+
+#在确定了类簇中心之后, 其它样本点依据局部密度(ro)从高到低依先后顺序确定所属的类别，每个人非中心的样本点的类别为邻域内最近的ro高于该样本点的点的样本点所属的类别（重要，如此可满足流形）
+#define which class every point belongs to 
+ii = order(ro,decreasing=T)
+for(i in ii)
+{
+  if(color[i]==0)
+  {
+    id = which(ro >= ro[i])
+    id2 = id[which(color[id]!=0)]
+    dis = mat[i,id2]
+    color[i] = color[id2[which.min(dis)]]
+  }
+  
+}
+plot(ro,delta,col = factor(color),main='decision gragh')
+plot(data$V1,data$V2,col = factor(color),xlab='x',ylab='y',main='real cluster',type='p')
+
